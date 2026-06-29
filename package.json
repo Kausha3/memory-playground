@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test lib/memory.test.ts"
+    "test": "node --import tsx --test lib/memory.test.ts lib/memory.adversarial.test.ts"
   },
   "dependencies": {
     "next": "16.2.9",

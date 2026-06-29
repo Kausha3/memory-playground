@@ -61,11 +61,21 @@ function leadingSubject(text: string): string | null {
   return m ? m[1]!.trim() : null;
 }
 
+// Trailing adverbs that regularly leak into a captured value ("works at Stripe again").
+const TRAILING_FILLER = new Set([
+  "again", "now", "currently", "too", "also", "anymore", "instead", "today", "then", "still",
+]);
+
 function cleanValue(raw: string): string {
-  return raw
-    .split(/\s+and\s+/)[0]!
+  const v = raw
+    .split(/\s+and\s+/)[0]! // "Acme and ..." -> "Acme"
     .replace(/[.,;:!?]+$/, "")
     .trim();
+  const words = v.split(/\s+/);
+  while (words.length > 1 && TRAILING_FILLER.has(words[words.length - 1]!.toLowerCase())) {
+    words.pop();
+  }
+  return words.join(" ");
 }
 
 export interface Extracted {
