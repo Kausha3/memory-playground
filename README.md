@@ -8,15 +8,11 @@ they change — instead of letting an out-of-date fact silently win.
 
 ▶︎ **Live:** **https://memory-playground-kausha-trivedis-projects.vercel.app**
 
-```
-Type:  "Priya works at Stripe."
-Type:  "Priya now works at Acme."
+![Memory Playground retracting a stale fact](docs/retraction.gif)
 
-Memory →  Priya — works at: Acme
-          retracted:  works at: Stripe   [#1 → #2]
-
-Ask:   "Where does Priya work?"  →  "Acme"   (the stale value is never surfaced)
-```
+> Tell it *"Priya works at Stripe,"* then *"Priya now works at Acme."* The old value
+> isn't overwritten — it's **retracted** (closed at the step the new one began), so the
+> answer to *"Where does Priya work?"* is `Acme`, and the stale value never resurfaces.
 
 ## Why this exists
 
