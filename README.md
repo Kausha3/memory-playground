@@ -6,7 +6,7 @@
 people and watch a typed-constraint memory extract them and **retract stale ones** when
 they change — instead of letting an out-of-date fact silently win.
 
-▶︎ **Live:** _add your deployment URL here_
+▶︎ **Live:** **https://memory-playground-kausha-trivedis-projects.vercel.app**
 
 ```
 Type:  "Priya works at Stripe."
