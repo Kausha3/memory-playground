@@ -55,10 +55,48 @@ const nextId = () => `c${idCounter++}`;
 
 // --- extraction -------------------------------------------------------------
 
+// Verbs / triggers that, as the FIRST word, mean there is no subject (e.g. "works at…",
+// "send me…"). These can never be a name.
+const PURE_TRIGGER = new Set([
+  "works", "work", "lives", "live", "moved", "joined", "is", "are", "was", "were",
+  "send", "switched", "relocated", "headquartered", "based", "interested", "likes",
+  "into", "has", "have", "does", "do", "did",
+]);
+
+// Words that END the subject: the predicate/verb/aux begins here. Subject is everything
+// before the first of these. Lets us find the subject without relying on capitalization.
+const SUBJECT_END = new Set([
+  ...PURE_TRIGGER,
+  "worked", "lived", "moving", "joins", "be", "been", "being", "had", "will", "would",
+  "can", "could", "now", "recently", "currently", "still", "also", "just", "then",
+  "again", "no", "not", "never", "prefers", "prefer", "left", "runs", "leads",
+  "founded", "heads", "and", "who",
+]);
+
+const bare = (tok: string) => tok.toLowerCase().replace(/[^a-z0-9']/g, "");
+const cap = (tok: string) => {
+  const t = tok.replace(/[.,;:!?]+$/, "");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+
+/**
+ * Extract the subject as the leading run of words up to the first verb/trigger. Works
+ * for "Priya works at Stripe", "priya works at stripe", "Acme Labs is headquartered…",
+ * and "Actually, Omar does not work at…". Canonicalizes case so display stays clean.
+ */
 function leadingSubject(text: string): string | null {
-  const cleaned = text.replace(/^(actually|correction|note|update|fyi|reminder)[,:]?\s+/i, "");
-  const m = cleaned.match(/^([A-Z][\w.]*(?:\s+[A-Z][\w.]*)*)/);
-  return m ? m[1]!.trim() : null;
+  const cleaned = text.replace(/^(actually|correction|note|update|fyi|reminder)[,:]?\s+/i, "").trim();
+  if (!cleaned) return null;
+
+  const tokens = cleaned.split(/\s+/);
+  if (PURE_TRIGGER.has(bare(tokens[0]!))) return null; // starts with a verb → no subject
+
+  const subjectTokens: string[] = [cap(tokens[0]!)];
+  for (let i = 1; i < tokens.length && subjectTokens.length < 4; i++) {
+    if (SUBJECT_END.has(bare(tokens[i]!))) break;
+    subjectTokens.push(cap(tokens[i]!));
+  }
+  return subjectTokens.join(" ");
 }
 
 // Trailing adverbs that regularly leak into a captured value ("works at Stripe again").
