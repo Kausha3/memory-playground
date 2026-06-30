@@ -26,6 +26,54 @@ const FACT_EXAMPLES = [
 
 const QUERY_EXAMPLES = ["Where does Priya work?", "Where does Marcus live?", "What is Dana's role?"];
 
+interface Scenario {
+  id: string;
+  label: string;
+  steps: string[];
+  question: string;
+  takeaway: string;
+}
+
+// One-click demos of the behaviors a typed-constraint memory handles that a plain
+// statement-store does not. Each resets, replays its steps, and asks the question.
+const SCENARIOS: Scenario[] = [
+  {
+    id: "retraction",
+    label: "Retraction",
+    steps: ["Priya works at Stripe.", "Priya now works at Acme."],
+    question: "Where does Priya work?",
+    takeaway: "The old value isn't overwritten — it's closed at the step the new one began, so the answer is current and the stale value never resurfaces.",
+  },
+  {
+    id: "disambiguation",
+    label: "Disambiguation",
+    steps: ["Priya Patel works at Google.", "Priya Sharma works at Stripe."],
+    question: "Where does Priya Patel work?",
+    takeaway: "Two people share a first name. The memory binds facts to the full identity, so it answers about the right Priya instead of conflating them.",
+  },
+  {
+    id: "contradiction",
+    label: "Contradiction",
+    steps: ["Omar works at Datadog.", "Actually, Omar does not work at Datadog; he works at Snowflake."],
+    question: "Where does Omar work?",
+    takeaway: "The correction names the old value mid-sentence. The memory resolves the contradiction to the current value and excludes the stale one.",
+  },
+  {
+    id: "reinstatement",
+    label: "Reinstatement",
+    steps: ["Dana is a designer.", "Dana is now a product manager.", "Dana is a designer again."],
+    question: "What is Dana's role?",
+    takeaway: "A value can return after being retracted. It comes back with a fresh window, and the full history of changes is preserved.",
+  },
+  {
+    id: "multi-fact",
+    label: "Independent facts",
+    steps: ["Marcus lives in Boston.", "Marcus is a security engineer.", "Marcus moved to Seattle."],
+    question: "Where does Marcus live?",
+    takeaway: "A person can hold several facts at once. Updating where Marcus lives retracts only that fact — his role is untouched.",
+  },
+];
+
 function windowLabel(c: Constraint): string {
   return c.untilStep === null ? `#${c.fromStep} → now` : `#${c.fromStep} → #${c.untilStep}`;
 }
@@ -35,6 +83,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<QueryResult | null>(null);
+  const [takeaway, setTakeaway] = useState<string | null>(null);
 
   function doRemember(text: string) {
     const t = text.trim();
@@ -42,6 +91,7 @@ export default function Home() {
     setMem((m) => remember(m, t).state);
     setInput("");
     setResult(null);
+    setTakeaway(null);
   }
 
   function doQuery(text: string) {
@@ -49,6 +99,15 @@ export default function Home() {
     if (!t) return;
     setQuestion(t);
     setResult(query(mem, t));
+  }
+
+  function runScenario(s: Scenario) {
+    let st = EMPTY;
+    for (const step of s.steps) st = remember(st, step).state;
+    setMem(st);
+    setQuestion(s.question);
+    setResult(query(st, s.question));
+    setTakeaway(s.takeaway);
   }
 
   const people = subjects(mem);
@@ -65,8 +124,25 @@ export default function Home() {
       </header>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Left: input + timeline + query */}
+        {/* Left: scenarios + input + timeline + query */}
         <section className="space-y-6">
+          <div>
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">
+              See a behavior in one click
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {SCENARIOS.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => runScenario(s)}
+                  className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 hover:border-emerald-400 hover:bg-emerald-100"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <form
               onSubmit={(e) => {
@@ -178,6 +254,10 @@ export default function Home() {
                     : "no matching constraint — fell back to keyword search over raw text"}
                 </p>
               </div>
+            )}
+
+            {takeaway && (
+              <p className="mt-3 border-l-2 border-emerald-300 pl-3 text-sm text-neutral-600">{takeaway}</p>
             )}
           </div>
         </section>
